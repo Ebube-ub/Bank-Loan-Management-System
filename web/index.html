@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NepoLM · Loan Management</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-logo">N</div>
+            <div>
+                <div class="brand-name">Nepo<span>LM</span></div>
+                <div class="brand-sub">Loan Management</div>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <a href="#dashboard" data-view="dashboard">Dashboard</a>
+            <a href="#customers" data-view="customers">Customers</a>
+            <a href="#loans" data-view="loans">Loans</a>
+            <a href="#payments" data-view="payments">Payments</a>
+            <a href="#reports" data-view="reports">Reports</a>
+        </nav>
+    </aside>
+
+    <!-- Main area -->
+    <main class="main">
+        <header class="topbar">
+            <h1 id="page-title">Dashboard</h1>
+            <button class="btn btn-primary" id="new-loan-button">+ New Loan</button>
+        </header>
+
+        <div class="content">
+
+            <!-- ===== DASHBOARD ===== -->
+            <section id="view-dashboard" class="view">
+                <div class="welcome">
+                    <div>
+                        <h2>Welcome to NepoLM</h2>
+                        <p>Lend, track and collect, all in one place.</p>
+                    </div>
+                    <div class="welcome-date" id="dash-date"></div>
+                </div>
+
+                <div class="cards">
+                    <div class="card stat stat-blue">
+                        <span class="stat-label">Active loans</span>
+                        <span class="stat-value" id="dash-active">0</span>
+                    </div>
+                    <div class="card stat stat-red">
+                        <span class="stat-label">Overdue installments</span>
+                        <span class="stat-value" id="dash-overdue">0</span>
+                    </div>
+                    <div class="card stat stat-indigo">
+                        <span class="stat-label">Interest earned</span>
+                        <span class="stat-value" id="dash-interest">0.00</span>
+                    </div>
+                    <div class="card stat stat-green">
+                        <span class="stat-label">Available funds</span>
+                        <span class="stat-value" id="dash-funds">0.00</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Latest loans</h2>
+                        <a href="#loans" class="link">See all loans</a>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Loan ID</th>
+                                <th>Customer</th>
+                                <th>Principal</th>
+                                <th>Outstanding</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-loans"></tbody>
+                    </table>
+                    <p class="empty hidden" id="dash-loans-empty">No loans yet. Click "+ New Loan" to create one.</p>
+                </div>
+            </section>
+
+            <!-- ===== CUSTOMERS ===== -->
+            <section id="view-customers" class="view hidden">
+                <div class="card">
+                    <h2>Register a customer</h2>
+                    <form id="customer-form" class="form-row">
+                        <label>Customer ID
+                            <input name="customerId" placeholder="e.g. C001" required>
+                        </label>
+                        <label>Full name
+                            <input name="name" placeholder="e.g. Ada Obi" required>
+                        </label>
+                        <label>Email
+                            <input name="email" type="email" placeholder="e.g. ada@example.com" required>
+                        </label>
+                        <label>Credit tier
+                            <select name="tier">
+                                <option value="STANDARD">Standard (max 2 loans)</option>
+                                <option value="PREMIUM">Premium (max 3 loans)</option>
+                            </select>
+                        </label>
+                        <button class="btn btn-primary" type="submit">Register</button>
+                    </form>
+                    <p class="form-error" id="customer-error"></p>
+                </div>
+
+                <div class="card">
+                    <h2>All customers</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Tier</th>
+                                <th>Active loans</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="customers-table"></tbody>
+                    </table>
+                    <p class="empty hidden" id="customers-empty">No customers yet. Register one above.</p>
+                </div>
+            </section>
+
+            <!-- ===== LOANS ===== -->
+            <section id="view-loans" class="view hidden">
+                <div class="card">
+                    <h2>Search loans</h2>
+                    <form id="loan-search-form" class="form-row">
+                        <label>Show
+                            <select name="mode" id="search-mode">
+                                <option value="all">All loans</option>
+                                <option value="customer">By customer</option>
+                                <option value="status">By status</option>
+                                <option value="balance">Highest balance first</option>
+                            </select>
+                        </label>
+                        <label class="hidden" id="search-customer-field">Customer ID
+                            <input name="customerId" placeholder="e.g. C001">
+                        </label>
+                        <label class="hidden" id="search-status-field">Status
+                            <select name="status">
+                                <option value="ACTIVE">Active</option>
+                                <option value="PAID_OFF">Paid off</option>
+                                <option value="DEFAULTED">Defaulted</option>
+                            </select>
+                        </label>
+                        <button class="btn" type="submit">Search</button>
+                    </form>
+                    <p class="form-error" id="loan-search-error"></p>
+                </div>
+
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Loan ID</th>
+                                <th>Customer</th>
+                                <th>Principal</th>
+                                <th>Outstanding</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="loans-table"></tbody>
+                    </table>
+                    <p class="empty hidden" id="loans-empty">No loans found.</p>
+                </div>
+            </section>
+
+            <!-- ===== PAYMENTS ===== -->
+            <section id="view-payments" class="view hidden">
+                <div class="card">
+                    <h2>Make a payment</h2>
+                    <form id="payment-form" class="form-row">
+                        <label>Loan ID
+                            <input name="loanId" id="payment-loan-id" placeholder="e.g. L001" required>
+                        </label>
+                        <label>Amount
+                            <input name="amount" type="number" step="0.01" min="0.01" placeholder="e.g. 500" required>
+                        </label>
+                        <button class="btn btn-primary" type="submit">Pay</button>
+                    </form>
+                    <p class="form-error" id="payment-error"></p>
+
+                    <div class="result hidden" id="payment-result"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Loans with money still owed</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Loan ID</th>
+                                <th>Customer</th>
+                                <th>Outstanding</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments-loans"></tbody>
+                    </table>
+                    <p class="empty hidden" id="payments-empty">No loans have money owed right now.</p>
+                </div>
+            </section>
+
+            <!-- ===== REPORTS ===== -->
+            <section id="view-reports" class="view hidden">
+                <div class="cards">
+                    <div class="card stat stat-blue">
+                        <span class="stat-label">Active</span>
+                        <span class="stat-value" id="report-active">0</span>
+                    </div>
+                    <div class="card stat stat-green">
+                        <span class="stat-label">Paid off</span>
+                        <span class="stat-value" id="report-paid-off">0</span>
+                    </div>
+                    <div class="card stat stat-red">
+                        <span class="stat-label">Defaulted</span>
+                        <span class="stat-value" id="report-defaulted">0</span>
+                    </div>
+                    <div class="card stat stat-indigo">
+                        <span class="stat-label">Interest earned</span>
+                        <span class="stat-value" id="report-interest">0.00</span>
+                    </div>
+                    <div class="card stat stat-green">
+                        <span class="stat-label">Available funds</span>
+                        <span class="stat-value" id="report-funds">0.00</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Top borrowers</h2>
+                        <label class="inline-label">Show top
+                            <input type="number" id="top-limit" value="5" min="1" class="small-input">
+                        </label>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Customer</th>
+                                <th>Total borrowed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-borrowers"></tbody>
+                    </table>
+                    <p class="empty hidden" id="top-borrowers-empty">No customers yet.</p>
+                </div>
+
+                <div class="card">
+                    <h2>Overdue installments</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Loan ID</th>
+                                <th>Due date</th>
+                                <th>Days overdue</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overdue-table"></tbody>
+                    </table>
+                    <p class="empty hidden" id="overdue-empty">Nothing is overdue.</p>
+                </div>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<!-- ===== NEW LOAN MODAL ===== -->
+<div class="modal hidden" id="new-loan-modal">
+    <div class="modal-box">
+        <button class="modal-close" data-close>&times;</button>
+        <h2>New loan</h2>
+        <p class="muted">Enter the customer ID first. We check they can take another loan before you fill in the rest.</p>
+
+        <form id="new-loan-form">
+            <label>Customer ID
+                <input name="customerId" id="new-loan-customer" placeholder="e.g. C001" required>
+            </label>
+            <p class="form-error" id="new-loan-customer-error"></p>
+            <p class="form-ok" id="new-loan-customer-ok"></p>
+
+            <fieldset id="new-loan-details" disabled>
+                <label>Loan ID
+                    <input name="loanId" placeholder="e.g. L001" required>
+                </label>
+                <div class="two-columns">
+                    <label>Amount
+                        <input name="principal" type="number" step="0.01" min="0.01" placeholder="e.g. 12000" required>
+                    </label>
+                    <label>Interest rate (% per year)
+                        <input name="interestPercent" type="number" step="0.01" min="0" placeholder="e.g. 10" required>
+                    </label>
+                </div>
+                <label>Term (months)
+                    <input name="termMonths" type="number" step="1" min="1" placeholder="e.g. 12" required>
+                </label>
+            </fieldset>
+
+            <p class="form-error" id="new-loan-error"></p>
+
+            <div class="modal-actions">
+                <button type="button" class="btn" data-close>Cancel</button>
+                <button type="submit" class="btn btn-primary" id="new-loan-submit" disabled>Create loan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== LOAN DETAILS MODAL ===== -->
+<div class="modal hidden" id="loan-details-modal">
+    <div class="modal-box wide">
+        <button class="modal-close" data-close>&times;</button>
+        <h2 id="details-title">Loan</h2>
+        <div id="details-summary" class="details-grid"></div>
+
+        <div class="card-header">
+            <h3>Installments</h3>
+            <select id="details-filter" class="small-select">
+                <option value="all">All</option>
+                <option value="paid">Paid only</option>
+                <option value="unpaid">Unpaid only</option>
+            </select>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Due date</th>
+                    <th>Amount due</th>
+                    <th>Paid</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="details-installments"></tbody>
+        </table>
+        <p class="empty hidden" id="details-empty">No installments found.</p>
+
+        <div class="modal-actions">
+            <button type="button" class="btn" data-close>Close</button>
+            <button type="button" class="btn btn-primary" id="details-pay">Make a payment</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast message (bottom right) -->
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

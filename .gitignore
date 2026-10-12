@@ -1,0 +1,4 @@
+# compiled classes (rebuilt by the run scripts)
+bin/
+out/
+out-test/

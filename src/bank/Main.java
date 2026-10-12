@@ -126,6 +126,16 @@ public class Main {
     private static void applyForLoan(Bank bank) {
 
         String customerId = readLine("Enter customer ID: ");
+
+        // stop straight away if the customer can't take another loan,
+        // before asking for the rest of the details
+        try {
+            bank.checkActiveLoanLimit(customerId);
+        } catch (CustomerNotFoundException | LoanLimitExceededException e) {
+            System.out.println("Error: " + e.getMessage());
+            return;
+        }
+
         String loanId = readLine("Enter loan ID: ");
         BigDecimal principal = readAmount("Enter loan amount: ");
         BigDecimal interestRate = readAmount("Enter annual interest rate (e.g. 0.12 for 12%): ");
@@ -141,7 +151,8 @@ public class Main {
             System.out.println("Number of installments: " + loan.getInstallments().size());
 
         } catch (CustomerNotFoundException | InsufficientFundsException
-                | LoanLimitExceededException | OverdueInstallmentsException e) {
+                | LoanLimitExceededException | OverdueInstallmentsException
+                | IllegalArgumentException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -166,7 +177,7 @@ public class Main {
             System.out.println("Loan status: " + loan.getStatus());
             System.out.println("Outstanding balance: " + money(loan.getOutstandingBalance()));
 
-        } catch (LoanNotFoundException e) {
+        } catch (LoanNotFoundException | IllegalArgumentException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }

@@ -130,18 +130,7 @@ public class Bank implements Serializable {
             );
         }
 
-        int maxActiveLoans;
-        if (customer.getCreditTier() == CreditTier.PREMIUM) {
-            maxActiveLoans = 3;
-        } else {
-            maxActiveLoans = 2;
-        }
-
-        if (customer.getActiveLoans().size() >= maxActiveLoans) {
-            throw new LoanLimitExceededException(
-                    "Customer has reached the maximum number of active loans."
-            );
-        }
+        checkActiveLoanLimit(customerId);
 
         BigDecimal currentTotalBorrowed = getTotalActiveBorrowed(customer);
 
@@ -165,6 +154,29 @@ public class Bank implements Serializable {
         generateRepaymentSchedule(loan);
 
         return loan;
+    }
+
+    // Throws if this customer already has as many active loans as their
+    // credit tier allows. Main calls this right after the customer ID is
+    // entered, so the user doesn't have to fill in the whole loan form first.
+    public void checkActiveLoanLimit(String customerId)
+            throws CustomerNotFoundException, LoanLimitExceededException {
+
+        Customer customer = findCustomerById(customerId);
+
+        if (customer.getActiveLoans().size() >= maxActiveLoans(customer.getCreditTier())) {
+            throw new LoanLimitExceededException(
+                    "Customer has reached the maximum number of active loans."
+            );
+        }
+    }
+
+    // How many ACTIVE loans a customer of this tier may have at once.
+    public static int maxActiveLoans(CreditTier creditTier) {
+        if (creditTier == CreditTier.PREMIUM) {
+            return 3;
+        }
+        return 2;
     }
 
     private void generateRepaymentSchedule(Loan loan) {
