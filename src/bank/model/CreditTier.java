@@ -6,3 +6,4 @@ public enum CreditTier {
     STANDARD,
     PREMIUM
 }
+

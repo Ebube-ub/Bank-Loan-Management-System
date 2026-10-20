@@ -8,7 +8,60 @@
 </head>
 <body>
 
-<div class="layout">
+<!-- ===== SIGN IN ===== -->
+<div class="auth-screen hidden" id="login-screen">
+    <div class="auth-card">
+        <div class="brand auth-brand">
+            <div class="brand-logo">N</div>
+            <div>
+                <div class="brand-name">Nepo<span>LM</span></div>
+                <div class="brand-sub">Loan Management</div>
+            </div>
+        </div>
+
+        <h1>Sign in</h1>
+        <p class="muted">Customers: use the username and temporary password your lender gave you.</p>
+
+        <form id="login-form">
+            <label>Username
+                <input name="username" id="login-username" autocomplete="username" required>
+            </label>
+            <label>Password
+                <input name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <p class="form-error" id="login-error"></p>
+            <button class="btn btn-primary btn-wide" type="submit">Sign in</button>
+        </form>
+    </div>
+</div>
+
+<!-- ===== CHOOSE YOUR OWN PASSWORD ===== -->
+<div class="auth-screen hidden" id="password-screen">
+    <div class="auth-card">
+        <h1 id="password-title">Choose your own password</h1>
+        <p class="muted" id="password-note">You signed in with a temporary password. Choose a new one to continue.</p>
+
+        <form id="password-form">
+            <label>Current password
+                <input name="currentPassword" type="password" autocomplete="current-password" required>
+            </label>
+            <label>New password (at least 8 characters)
+                <input name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+            </label>
+            <label>New password again
+                <input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+            </label>
+            <p class="form-error" id="password-error"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn hidden" id="password-cancel">Cancel</button>
+                <button class="btn btn-primary" type="submit">Save password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== THE APP ===== -->
+<div class="layout hidden" id="app">
 
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -20,26 +73,42 @@
             </div>
         </div>
 
-        <nav class="nav">
-            <a href="#dashboard" data-view="dashboard">Dashboard</a>
-            <a href="#customers" data-view="customers">Customers</a>
-            <a href="#loans" data-view="loans">Loans</a>
-            <a href="#payments" data-view="payments">Payments</a>
-            <a href="#reports" data-view="reports">Reports</a>
+        <nav class="nav" id="nav">
+            <!-- lender (admin) -->
+            <a href="#dashboard" data-role="ADMIN" data-view="dashboard">Dashboard</a>
+            <a href="#applications" data-role="ADMIN" data-view="applications">Applications <span class="count hidden" id="pending-count">0</span></a>
+            <a href="#customers" data-role="ADMIN" data-view="customers">Customers</a>
+            <a href="#loans" data-role="ADMIN" data-view="loans">Loans</a>
+            <a href="#payments" data-role="ADMIN" data-view="payments">Payments</a>
+            <a href="#overdue" data-role="ADMIN" data-view="overdue">Overdue <span class="count hidden" id="overdue-count">0</span></a>
+            <a href="#finance" data-role="ADMIN" data-view="finance">Finance</a>
+            <a href="#reports" data-role="ADMIN" data-view="reports">Reports</a>
+
+            <!-- customer (user) -->
+            <a href="#overview" data-role="USER" data-view="overview">My account</a>
+            <a href="#my-loans" data-role="USER" data-view="my-loans">My loans</a>
         </nav>
+
+        <div class="sidebar-foot">
+            <div class="user-chip">
+                <div class="user-name" id="user-name"></div>
+                <div class="user-role" id="user-role"></div>
+            </div>
+            <button class="link-button" id="change-password-button">Change password</button>
+            <button class="link-button" id="logout-button">Sign out</button>
+        </div>
     </aside>
 
     <!-- Main area -->
     <main class="main">
         <header class="topbar">
             <h1 id="page-title">Dashboard</h1>
-            <button class="btn btn-primary" id="new-loan-button">+ New Loan</button>
         </header>
 
         <div class="content">
 
-            <!-- ===== DASHBOARD ===== -->
-            <section id="view-dashboard" class="view">
+            <!-- ================= ADMIN: DASHBOARD ================= -->
+            <section id="view-dashboard" class="view hidden">
                 <div class="welcome">
                     <div>
                         <h2>Welcome to NepoLM</h2>
@@ -53,9 +122,14 @@
                         <span class="stat-label">Active loans</span>
                         <span class="stat-value" id="dash-active">0</span>
                     </div>
+                    <div class="card stat stat-amber">
+                        <span class="stat-label">Waiting for approval</span>
+                        <span class="stat-value" id="dash-pending">0</span>
+                    </div>
                     <div class="card stat stat-red">
                         <span class="stat-label">Overdue installments</span>
                         <span class="stat-value" id="dash-overdue">0</span>
+                        <span class="stat-note" id="dash-action-note"></span>
                     </div>
                     <div class="card stat stat-indigo">
                         <span class="stat-label">Interest earned</span>
@@ -65,6 +139,26 @@
                         <span class="stat-label">Available funds</span>
                         <span class="stat-value" id="dash-funds">0.00</span>
                     </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Waiting for your decision</h2>
+                        <a href="#applications" class="link">See all applications</a>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Score</th>
+                                <th>Advice</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-applications"></tbody>
+                    </table>
+                    <p class="empty hidden" id="dash-applications-empty">Nothing is waiting for approval.</p>
                 </div>
 
                 <div class="card">
@@ -85,14 +179,60 @@
                         </thead>
                         <tbody id="dash-loans"></tbody>
                     </table>
-                    <p class="empty hidden" id="dash-loans-empty">No loans yet. Click "+ New Loan" to create one.</p>
+                    <p class="empty hidden" id="dash-loans-empty">No loans yet.</p>
                 </div>
             </section>
 
-            <!-- ===== CUSTOMERS ===== -->
-            <section id="view-customers" class="view hidden">
+            <!-- ================= ADMIN: APPLICATIONS ================= -->
+            <section id="view-applications" class="view hidden">
                 <div class="card">
-                    <h2>Register a customer</h2>
+                    <div class="card-header">
+                        <h2>Loan applications</h2>
+                        <label class="inline-label">Show
+                            <select id="app-filter">
+                                <option value="PENDING">Waiting for approval</option>
+                                <option value="APPROVED">Approved</option>
+                                <option value="DECLINED">Declined</option>
+                                <option value="">All</option>
+                            </select>
+                        </label>
+                    </div>
+                    <p class="muted">The system gives advice on each application, but nothing is lent until you approve it.</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Term</th>
+                                <th>Score</th>
+                                <th>Advice</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="applications-table"></tbody>
+                    </table>
+                    <p class="empty hidden" id="applications-empty">No applications here.</p>
+                </div>
+            </section>
+
+            <!-- ================= ADMIN: CUSTOMERS ================= -->
+            <section id="view-customers" class="view hidden">
+                <div class="card hidden" id="demo-card">
+                    <div class="card-header">
+                        <div>
+                            <h2>Demo customers</h2>
+                            <p class="muted">Adds 11 made-up customers (IDs D001 to D011) with loan histories, so credit scores have something to show.</p>
+                        </div>
+                        <button class="btn" id="demo-button">Load demo customers</button>
+                    </div>
+                    <p class="form-error" id="demo-error"></p>
+                </div>
+
+                <div class="card">
+                    <h2>Add a customer</h2>
+                    <p class="muted">A login is created with a temporary password. The customer chooses their own when they first sign in.</p>
                     <form id="customer-form" class="form-row">
                         <label>Customer ID
                             <input name="customerId" placeholder="e.g. C001" required>
@@ -103,13 +243,7 @@
                         <label>Email
                             <input name="email" type="email" placeholder="e.g. ada@example.com" required>
                         </label>
-                        <label>Credit tier
-                            <select name="tier">
-                                <option value="STANDARD">Standard (max 2 loans)</option>
-                                <option value="PREMIUM">Premium (max 3 loans)</option>
-                            </select>
-                        </label>
-                        <button class="btn btn-primary" type="submit">Register</button>
+                        <button class="btn btn-primary" type="submit">Add customer</button>
                     </form>
                     <p class="form-error" id="customer-error"></p>
                 </div>
@@ -121,19 +255,21 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Name</th>
-                                <th>Email</th>
+                                <th>Score</th>
+                                <th>Band</th>
                                 <th>Tier</th>
                                 <th>Active loans</th>
+                                <th>Login</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody id="customers-table"></tbody>
                     </table>
-                    <p class="empty hidden" id="customers-empty">No customers yet. Register one above.</p>
+                    <p class="empty hidden" id="customers-empty">No customers yet.</p>
                 </div>
             </section>
 
-            <!-- ===== LOANS ===== -->
+            <!-- ================= ADMIN: LOANS ================= -->
             <section id="view-loans" class="view hidden">
                 <div class="card">
                     <h2>Search loans</h2>
@@ -147,7 +283,7 @@
                             </select>
                         </label>
                         <label class="hidden" id="search-customer-field">Customer ID
-                            <input name="customerId" placeholder="e.g. C001">
+                            <input name="customerId" placeholder="e.g. D001">
                         </label>
                         <label class="hidden" id="search-status-field">Status
                             <select name="status">
@@ -179,21 +315,21 @@
                 </div>
             </section>
 
-            <!-- ===== PAYMENTS ===== -->
+            <!-- ================= ADMIN: PAYMENTS ================= -->
             <section id="view-payments" class="view hidden">
                 <div class="card">
-                    <h2>Make a payment</h2>
+                    <h2>Record a payment</h2>
+                    <p class="muted">For a payment a customer made to you, for example cash at the counter. It is marked as recorded by you.</p>
                     <form id="payment-form" class="form-row">
                         <label>Loan ID
                             <input name="loanId" id="payment-loan-id" placeholder="e.g. L001" required>
                         </label>
-                        <label>Amount
+                        <label>Amount (&#8358;)
                             <input name="amount" type="number" step="0.01" min="0.01" placeholder="e.g. 500" required>
                         </label>
-                        <button class="btn btn-primary" type="submit">Pay</button>
+                        <button class="btn btn-primary" type="submit">Record payment</button>
                     </form>
                     <p class="form-error" id="payment-error"></p>
-
                     <div class="result hidden" id="payment-result"></div>
                 </div>
 
@@ -215,7 +351,101 @@
                 </div>
             </section>
 
-            <!-- ===== REPORTS ===== -->
+            <!-- ================= ADMIN: OVERDUE ================= -->
+            <section id="view-overdue" class="view hidden">
+                <div class="card">
+                    <h2>Needs action</h2>
+                    <p class="muted">Send a warning once someone is more than 10 days late. If they have not paid 5 days after the warning, the case needs escalation.</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>How late</th>
+                                <th class="num">Total owed today</th>
+                                <th>What to do</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="action-table"></tbody>
+                    </table>
+                    <p class="empty hidden" id="action-empty">Nobody needs action right now.</p>
+                </div>
+
+                <div class="card">
+                    <h2>Warned and watched</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>How late</th>
+                                <th class="num">Total owed today</th>
+                                <th>Where it stands</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="waiting-table"></tbody>
+                    </table>
+                    <p class="empty hidden" id="waiting-empty">Nobody else is late.</p>
+                </div>
+
+                <div class="card">
+                    <h2>Overdue installments</h2>
+                    <p class="muted">The colour shows how late. The total owed today includes the late fee and the interest on the late amount, which grows every day.</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Loan ID</th>
+                                <th>Due date</th>
+                                <th>How late</th>
+                                <th class="num">Installment</th>
+                                <th class="num">Fee and interest</th>
+                                <th class="num">Total owed today</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overdue-table"></tbody>
+                    </table>
+                    <p class="empty hidden" id="overdue-empty">Nothing is overdue.</p>
+                </div>
+            </section>
+
+            <!-- ================= ADMIN: FINANCE ================= -->
+            <section id="view-finance" class="view hidden">
+                <div class="cards">
+                    <div class="card stat stat-green">
+                        <span class="stat-label">Money earned</span>
+                        <span class="stat-value" id="fin-revenue">0.00</span>
+                        <span class="stat-note" id="fin-revenue-note">Interest and fees your customers have paid</span>
+                    </div>
+                    <div class="card stat stat-red">
+                        <span class="stat-label">Money lost</span>
+                        <span class="stat-value" id="fin-lost">0.00</span>
+                        <span class="stat-note">Loans that were never repaid</span>
+                    </div>
+                    <div class="card stat stat-indigo">
+                        <span class="stat-label">Profit</span>
+                        <span class="stat-value" id="fin-profit">0.00</span>
+                        <span class="stat-note">Earned minus lost</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Month by month</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Earned</th>
+                                <th>Lost</th>
+                                <th>Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="finance-months"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ================= ADMIN: REPORTS ================= -->
             <section id="view-reports" class="view hidden">
                 <div class="cards">
                     <div class="card stat stat-blue">
@@ -259,21 +489,123 @@
                     </table>
                     <p class="empty hidden" id="top-borrowers-empty">No customers yet.</p>
                 </div>
+            </section>
+
+            <!-- ================= CUSTOMER: MY ACCOUNT ================= -->
+            <section id="view-overview" class="view hidden">
+                <div class="hidden" id="notice-overview"></div>
+
+                <div class="card score-card">
+                    <div class="score-main">
+                        <div class="score-label">Your credit score</div>
+                        <div class="score-number" id="me-score">0</div>
+                        <div id="me-band"></div>
+                    </div>
+
+                    <div class="score-side">
+                        <div class="score-borrow">You can borrow up to <strong id="me-available"></strong></div>
+                        <div class="score-bar"><div class="score-bar-fill" id="score-bar-fill"></div></div>
+                        <div class="score-bar-labels"><span>300</span><span>850</span></div>
+                        <p class="muted" id="me-active"></p>
+                    </div>
+                </div>
+
+                <!-- The rules below must match CreditScorer.java -->
+                <details class="card how-card">
+                    <summary>How is my score worked out?</summary>
+                    <div class="how-body">
+                        <p class="muted">Everyone starts at 600. Then points are added or taken away:</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>What happens</th>
+                                    <th class="num">Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Each installment you pay on time</td><td class="num">+10 (up to +150)</td></tr>
+                                <tr><td>Each installment you pay late</td><td class="num">-15</td></tr>
+                                <tr><td>Each installment that is overdue now</td><td class="num">-40</td></tr>
+                                <tr><td>Each loan you finish paying off</td><td class="num">+25 (up to +75)</td></tr>
+                                <tr><td>A loan that defaulted (3 missed installments in a row)</td><td class="num">-150</td></tr>
+                                <tr><td>Using a lot of your <span id="how-limit">total</span> borrowing limit (only while you have a loan)</td><td class="num">+10 under a quarter, 0 up to half, -20 up to 80%, -40 above</td></tr>
+                            </tbody>
+                        </table>
+
+                        <h3>Your score right now</h3>
+                        <table>
+                            <tbody id="me-factors"></tbody>
+                        </table>
+
+                        <p class="muted">Bands: Excellent 750 and above, Good 670 to 749, Fair 580 to 669, Poor below 580. A higher band means you can borrow more.</p>
+                    </div>
+                </details>
 
                 <div class="card">
-                    <h2>Overdue installments</h2>
+                    <h2>Apply for a loan</h2>
+                    <div id="apply-blocked" class="notice hidden"></div>
+
+                    <form id="apply-form">
+                        <p class="muted" id="apply-rate-note"></p>
+
+                        <div class="rules-box" id="rules-apply"></div>
+
+                        <label class="check">
+                            <input type="checkbox" name="acceptRules" id="apply-accept">
+                            I have read and understood these rules.
+                        </label>
+
+                        <div class="form-row">
+                            <label>Amount (&#8358;)
+                                <input name="principal" id="apply-amount" type="number" step="0.01" min="0.01" placeholder="e.g. 5000" required>
+                            </label>
+                            <label>Term (months)
+                                <input name="termMonths" type="number" step="1" min="1" max="60" placeholder="e.g. 6" required>
+                            </label>
+                            <button class="btn btn-primary" type="submit" id="apply-button" disabled>Apply</button>
+                        </div>
+                    </form>
+                    <p class="form-error" id="apply-error"></p>
+                    <div class="result hidden" id="apply-result"></div>
+                </div>
+
+                <div class="card">
+                    <h2>My applications</h2>
                     <table>
                         <thead>
                             <tr>
-                                <th>Customer</th>
-                                <th>Loan ID</th>
-                                <th>Due date</th>
-                                <th>Days overdue</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Details</th>
                             </tr>
                         </thead>
-                        <tbody id="overdue-table"></tbody>
+                        <tbody id="my-applications"></tbody>
                     </table>
-                    <p class="empty hidden" id="overdue-empty">Nothing is overdue.</p>
+                    <p class="empty hidden" id="my-applications-empty">You haven't applied for a loan yet.</p>
+                </div>
+            </section>
+
+            <!-- ================= CUSTOMER: MY LOANS ================= -->
+            <section id="view-my-loans" class="view hidden">
+                <div class="hidden" id="notice-loans"></div>
+
+                <div class="card">
+                    <h2>My loans</h2>
+                    <div class="rules-box" id="rules-loans"></div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Loan</th>
+                                <th>Borrowed</th>
+                                <th>Still owed</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="my-loans-table"></tbody>
+                    </table>
+                    <p class="empty hidden" id="my-loans-empty">You don't have any loans yet.</p>
                 </div>
             </section>
 
@@ -281,48 +613,182 @@
     </main>
 </div>
 
-<!-- ===== NEW LOAN MODAL ===== -->
-<div class="modal hidden" id="new-loan-modal">
+<!-- ===== TEMPORARY PASSWORD POP-UP ===== -->
+<div class="modal hidden" id="credentials-modal">
     <div class="modal-box">
         <button class="modal-close" data-close>&times;</button>
-        <h2>New loan</h2>
-        <p class="muted">Enter the customer ID first. We check they can take another loan before you fill in the rest.</p>
+        <h2 id="credentials-title">Login created</h2>
+        <p class="muted">Give these to the customer. The password is shown only this once, and they will be asked to choose their own when they sign in.</p>
 
-        <form id="new-loan-form">
-            <label>Customer ID
-                <input name="customerId" id="new-loan-customer" placeholder="e.g. C001" required>
+        <div class="credentials">
+            <div><span>Customer</span><strong id="credentials-name"></strong></div>
+            <div><span>Username</span><strong class="mono" id="credentials-username"></strong></div>
+            <div><span>Temporary password</span><strong class="mono" id="credentials-password"></strong></div>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn btn-primary" data-close>Done</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== CUSTOMER DETAILS POP-UP (admin) ===== -->
+<div class="modal hidden" id="customer-modal">
+    <div class="modal-box wide">
+        <button class="modal-close" data-close>&times;</button>
+        <h2 id="customer-title">Customer</h2>
+        <div id="customer-summary" class="details-grid"></div>
+
+        <h3>Why this score</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Factor</th>
+                    <th class="num">Points</th>
+                </tr>
+            </thead>
+            <tbody id="customer-factors"></tbody>
+        </table>
+
+        <h3>Loans</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Loan ID</th>
+                    <th>Principal</th>
+                    <th>Outstanding</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="customer-loans"></tbody>
+        </table>
+        <p class="empty hidden" id="customer-loans-empty">No loans yet.</p>
+
+        <h3>Applications</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Advice</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="customer-applications"></tbody>
+        </table>
+        <p class="empty hidden" id="customer-applications-empty">No applications yet.</p>
+
+        <div class="modal-actions">
+            <button type="button" class="btn" data-close>Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== APPLICATION POP-UP (admin) ===== -->
+<div class="modal hidden" id="application-modal">
+    <div class="modal-box wide">
+        <button class="modal-close" data-close>&times;</button>
+        <h2 id="application-title">Application</h2>
+        <div id="application-summary" class="details-grid"></div>
+
+        <div class="advice-box" id="application-advice"></div>
+
+        <h3>Customer's score now</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Factor</th>
+                    <th class="num">Points</th>
+                </tr>
+            </thead>
+            <tbody id="application-factors"></tbody>
+        </table>
+
+        <div id="application-decision" class="hidden">
+            <h3>Your decision</h3>
+            <div class="form-row">
+                <label>Interest rate (% a year)
+                    <input id="approve-rate" type="number" step="0.01" min="0" max="100">
+                </label>
+                <label class="grow">Note if you decline (shown to the customer)
+                    <input id="decline-note" placeholder="e.g. Please come back next month">
+                </label>
+            </div>
+            <p class="form-error" id="application-error"></p>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn" data-close>Close</button>
+            <button type="button" class="btn btn-danger hidden" id="decline-button">Decline</button>
+            <button type="button" class="btn btn-primary hidden" id="approve-button">Approve loan</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SEND WARNING POP-UP (admin) ===== -->
+<div class="modal hidden" id="warning-modal">
+    <div class="modal-box wide">
+        <button class="modal-close" data-close>&times;</button>
+        <h2 id="warning-title">Send warning</h2>
+        <p class="muted" id="warning-info"></p>
+        <div class="letter" id="warning-message"></div>
+        <p class="form-error" id="warning-error"></p>
+        <div class="modal-actions">
+            <button type="button" class="btn" data-close>Cancel</button>
+            <button type="button" class="btn btn-primary" id="warning-send">Send warning</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== LAWYER FILE POP-UP (admin) ===== -->
+<div class="modal hidden" id="lawyer-modal">
+    <div class="modal-box wide">
+        <button class="modal-close" data-close>&times;</button>
+        <h2 id="lawyer-title">Lawyer file</h2>
+        <p class="muted">Everything your lawyer needs, as plain text. Copy it and send it yourself. NepoLM never contacts your lawyer.</p>
+        <div class="letter" id="lawyer-text"></div>
+        <div class="modal-actions">
+            <button type="button" class="btn" id="lawyer-copy">Copy the file</button>
+        </div>
+
+        <div id="lawyer-refer" class="hidden">
+            <h3>Mark as referred</h3>
+            <p class="muted">Once you have handed this to your lawyer, mark it here so the record shows the date.</p>
+            <label>Note (optional)
+                <input id="lawyer-note" maxlength="500" placeholder="e.g. Handed to Mr Okoye">
             </label>
-            <p class="form-error" id="new-loan-customer-error"></p>
-            <p class="form-ok" id="new-loan-customer-ok"></p>
+            <p class="form-error" id="lawyer-error"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary" id="lawyer-refer-button">Mark as referred</button>
+            </div>
+        </div>
+        <p class="muted hidden" id="lawyer-referred-info"></p>
+    </div>
+</div>
 
-            <fieldset id="new-loan-details" disabled>
-                <label>Loan ID
-                    <input name="loanId" placeholder="e.g. L001" required>
-                </label>
-                <div class="two-columns">
-                    <label>Amount
-                        <input name="principal" type="number" step="0.01" min="0.01" placeholder="e.g. 12000" required>
-                    </label>
-                    <label>Interest rate (% per year)
-                        <input name="interestPercent" type="number" step="0.01" min="0" placeholder="e.g. 10" required>
-                    </label>
-                </div>
-                <label>Term (months)
-                    <input name="termMonths" type="number" step="1" min="1" placeholder="e.g. 12" required>
-                </label>
-            </fieldset>
+<!-- ===== PAY POP-UP (customer) ===== -->
+<div class="modal hidden" id="pay-modal">
+    <div class="modal-box">
+        <button class="modal-close" data-close>&times;</button>
+        <h2 id="pay-title">Pay</h2>
+        <p class="muted" id="pay-info"></p>
+        <p class="muted" id="pay-note"></p>
 
-            <p class="form-error" id="new-loan-error"></p>
-
+        <form id="pay-form">
+            <label>Amount (&#8358;)
+                <input name="amount" id="pay-amount" type="number" step="0.01" min="0.01" required>
+            </label>
+            <p class="form-error" id="pay-error"></p>
             <div class="modal-actions">
                 <button type="button" class="btn" data-close>Cancel</button>
-                <button type="submit" class="btn btn-primary" id="new-loan-submit" disabled>Create loan</button>
+                <button type="submit" class="btn btn-primary">Pay</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- ===== LOAN DETAILS MODAL ===== -->
+<!-- ===== LOAN DETAILS POP-UP (both roles) ===== -->
 <div class="modal hidden" id="loan-details-modal">
     <div class="modal-box wide">
         <button class="modal-close" data-close>&times;</button>
@@ -349,6 +815,19 @@
             <tbody id="details-installments"></tbody>
         </table>
         <p class="empty hidden" id="details-empty">No installments found.</p>
+
+        <h3>Payments made</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th id="details-note-header" class="hidden">Note</th>
+                </tr>
+            </thead>
+            <tbody id="details-payments"></tbody>
+        </table>
+        <p class="empty hidden" id="details-payments-empty">No payments yet.</p>
 
         <div class="modal-actions">
             <button type="button" class="btn" data-close>Close</button>

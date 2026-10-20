@@ -43,6 +43,14 @@ public class StaticFileHandler implements HttpHandler {
 
         byte[] bytes = Files.readAllBytes(file);
         exchange.getResponseHeaders().set("Content-Type", contentType(file.toString()));
+
+        // Only our own scripts and styles may run on the page. That way, even if
+        // some text were ever shown unescaped, a script hidden in it would not run.
+        exchange.getResponseHeaders().set("Content-Security-Policy",
+                "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+                + "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+        exchange.getResponseHeaders().set("Referrer-Policy", "same-origin");
         exchange.sendResponseHeaders(200, bytes.length);
         try (OutputStream output = exchange.getResponseBody()) {
             output.write(bytes);

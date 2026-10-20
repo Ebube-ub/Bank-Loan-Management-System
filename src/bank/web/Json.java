@@ -53,6 +53,15 @@ public class Json {
         return "[" + String.join(",", items) + "]";
     }
 
+    // turns a list of plain text into a JSON array of strings: ["a","b"]
+    public static String stringArray(List<String> texts) {
+        List<String> quoted = new java.util.ArrayList<>();
+        for (String text : texts) {
+            quoted.add(quote(text));
+        }
+        return array(quoted);
+    }
+
     public static String money(BigDecimal amount) {
         return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }

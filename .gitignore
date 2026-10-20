@@ -2,3 +2,7 @@
 bin/
 out/
 out-test/
+
+# the saved bank: customer details and login hashes. Never commit this.
+bank.dat
+bank.dat.tmp

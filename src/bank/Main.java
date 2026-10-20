@@ -9,17 +9,20 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Scanner;
 
+import bank.exception.ApplicationNotFoundException;
 import bank.exception.CustomerAlreadyExistsException;
 import bank.exception.CustomerNotFoundException;
 import bank.exception.InsufficientFundsException;
 import bank.exception.LoanLimitExceededException;
 import bank.exception.LoanNotFoundException;
 import bank.exception.OverdueInstallmentsException;
+import bank.model.ApplicationStatus;
 import bank.model.Bank;
-import bank.model.CreditTier;
 import bank.model.Customer;
 import bank.model.Installment;
 import bank.model.Loan;
+import bank.model.PaymentResult;
+import bank.model.LoanApplication;
 import bank.model.LoanStatus;
 import bank.model.LoanStatusSummary;
 import bank.model.OverdueEntry;
@@ -28,7 +31,6 @@ import bank.persistence.BankFileRepository;
 public class Main {
 
     private static final String DATA_FILE = "bank.dat";
-    private static final BigDecimal STARTING_FUNDS = new BigDecimal("100000");
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private static Scanner scanner = new Scanner(System.in);
@@ -101,28 +103,19 @@ public class Main {
         String name = readLine("Enter customer name: ");
         String email = readLine("Enter customer email: ");
 
-        System.out.println("Choose credit tier: 1. STANDARD  2. PREMIUM");
-        int tierChoice = readInt("Enter choice: ");
-
-        CreditTier creditTier;
-
-        if (tierChoice == 1) {
-            creditTier = CreditTier.STANDARD;
-        } else if (tierChoice == 2) {
-            creditTier = CreditTier.PREMIUM;
-        } else {
-            System.out.println("Invalid credit tier.");
-            return;
-        }
-
+        // the customer's tier is not chosen here: it follows their credit score
         try {
-            bank.registerCustomer(new Customer(customerId, name, email, creditTier));
+            String temporaryPassword = bank.registerCustomerWithLogin(new Customer(customerId, name, email));
             System.out.println("Customer registered successfully!");
-        } catch (CustomerAlreadyExistsException e) {
+            System.out.println("Login username: " + customerId.toLowerCase());
+            System.out.println("Temporary password: " + temporaryPassword + " (shown only once)");
+        } catch (CustomerAlreadyExistsException | IllegalArgumentException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
 
+    // The console acts as the admin: it records the application, shows the
+    // system's advice, and asks whether to approve it.
     private static void applyForLoan(Bank bank) {
 
         String customerId = readLine("Enter customer ID: ");
@@ -136,13 +129,35 @@ public class Main {
             return;
         }
 
-        String loanId = readLine("Enter loan ID: ");
         BigDecimal principal = readAmount("Enter loan amount: ");
         BigDecimal interestRate = readAmount("Enter annual interest rate (e.g. 0.12 for 12%): ");
         int termMonths = readInt("Enter term in months: ");
 
         try {
-            Loan loan = bank.applyForLoan(customerId, loanId, principal, interestRate, termMonths);
+            LoanApplication application = bank.submitApplication(
+                    customerId, principal, interestRate, termMonths, LocalDate.now());
+
+            System.out.println("Application " + application.getApplicationId() + ": advice is "
+                    + application.getAdvice() + " (score " + application.getScoreAtSubmission()
+                    + ", " + application.getBandAtSubmission() + " band)");
+            for (String reason : application.getAdviceReasons()) {
+                System.out.println(" - " + plain(reason));
+            }
+
+            if (application.getStatus() == ApplicationStatus.DECLINED) {
+                System.out.println("The application was declined.");
+                return;
+            }
+
+            String answer = readLine("Approve this loan? (y/n): ");
+            if (!answer.equalsIgnoreCase("y")) {
+                bank.declineApplication(application.getApplicationId(), "Declined from the console.",
+                        "console", LocalDate.now());
+                System.out.println("The application was declined.");
+                return;
+            }
+
+            Loan loan = bank.approveApplication(application.getApplicationId(), null, "console", LocalDate.now());
 
             System.out.println("Loan approved successfully!");
             System.out.println("Loan ID: " + loan.getLoanId());
@@ -150,10 +165,10 @@ public class Main {
             System.out.println("Total repayable: " + money(loan.getTotalRepayable()));
             System.out.println("Number of installments: " + loan.getInstallments().size());
 
-        } catch (CustomerNotFoundException | InsufficientFundsException
+        } catch (CustomerNotFoundException | ApplicationNotFoundException | InsufficientFundsException
                 | LoanLimitExceededException | OverdueInstallmentsException
                 | IllegalArgumentException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("Error: " + plain(e.getMessage()));
         }
     }
 
@@ -163,12 +178,20 @@ public class Main {
         BigDecimal paymentAmount = readAmount("Enter payment amount: ");
 
         try {
-            BigDecimal overpayment = bank.makePayment(loanId, paymentAmount);
+            PaymentResult result = bank.makePaymentDetailed(
+                    loanId, paymentAmount, LocalDate.now(), "console", false);
             System.out.println("Payment applied successfully!");
 
-            if (overpayment.compareTo(BigDecimal.ZERO) > 0) {
+            if (result.getPrepaymentFee().compareTo(BigDecimal.ZERO) > 0) {
                 System.out.println(
-                        "Note: " + money(overpayment)
+                        "Note: " + money(result.getPrepaymentFee())
+                        + " of it was a prepayment charge, for paying installments before they are due."
+                );
+            }
+
+            if (result.getOverpayment().compareTo(BigDecimal.ZERO) > 0) {
+                System.out.println(
+                        "Note: " + money(result.getOverpayment())
                         + " was not applied because the loan is now fully paid."
                 );
             }
@@ -379,8 +402,14 @@ public class Main {
     }
 
     // formats a money amount with exactly 2 decimal places
+    // (the console can't show the naira sign, so amounts are written as NGN)
     private static String money(BigDecimal amount) {
-        return amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
+        return "NGN " + amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    // messages from Bank use the naira sign; swap it for NGN so the console can print it
+    private static String plain(String message) {
+        return message.replace("₦", "NGN ");
     }
 
     // ---------- Persistence ----------
@@ -388,16 +417,17 @@ public class Main {
     private static Bank loadBank() {
         try {
             Bank bank = repository.load(DATA_FILE);
+            bank.increaseCapitalTo(Bank.STARTING_CAPITAL);
             System.out.println("Previous bank state loaded.");
             return bank;
         } catch (FileNotFoundException e) {
             System.out.println("No saved bank state found. Starting a new bank.");
-            return new Bank(STARTING_FUNDS);
+            return new Bank(Bank.STARTING_CAPITAL);
         } catch (IOException | ClassNotFoundException e) {
             System.out.println(
                     "Could not read saved bank state (" + e.getMessage() + "). Starting a new bank."
             );
-            return new Bank(STARTING_FUNDS);
+            return new Bank(Bank.STARTING_CAPITAL);
         }
     }
 

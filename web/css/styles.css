@@ -68,6 +68,15 @@ h3 {
     background: var(--sidebar);
     color: var(--sidebar-text);
     padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+
+    /* stays put while the page scrolls: as tall as the window, and scrolls
+       by itself only if its own content is taller than the window */
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
 }
 
 .brand {
@@ -252,6 +261,11 @@ h3 {
 .stat-value {
     font-size: 26px;
     font-weight: bold;
+}
+
+/* a long amount (millions) is set smaller so it still fits its card */
+.stat-value.long {
+    font-size: 20px;
 }
 
 /* ---------- Tables ---------- */
@@ -639,6 +653,9 @@ fieldset:disabled {
     .sidebar {
         width: 100%;
         padding: 12px 16px;
+        position: static;
+        height: auto;
+        overflow-y: visible;
     }
 
     .brand {
@@ -672,4 +689,477 @@ fieldset:disabled {
     .details-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* =====================================================================
+   Sign in, roles, credit score, advice and finance
+   ===================================================================== */
+
+/* ---------- Sign-in and password screens ---------- */
+.auth-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: linear-gradient(135deg, #0f172a, #1e3a8a);
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    animation: pop-in 0.25s ease-out;
+}
+
+.auth-card h1 {
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+
+.auth-card form {
+    margin-top: 18px;
+}
+
+.auth-brand {
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.auth-brand .brand-name {
+    color: var(--text);
+}
+
+.auth-brand .brand-sub {
+    color: var(--muted);
+}
+
+.btn-wide {
+    width: 100%;
+    padding: 11px 16px;
+}
+
+.btn-danger {
+    background: #fff;
+    border-color: #fca5a5;
+    color: var(--red-text);
+}
+
+.btn-danger:hover {
+    background: var(--red-bg);
+}
+
+/* ---------- Sidebar: who is signed in ---------- */
+.sidebar-foot {
+    margin-top: auto;
+    padding: 16px 6px 0;
+    border-top: 1px solid #1e293b;
+}
+
+.user-chip {
+    margin-bottom: 10px;
+}
+
+.user-name {
+    color: #fff;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.user-role {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.link-button {
+    display: block;
+    background: none;
+    border: none;
+    padding: 4px 0;
+    font: inherit;
+    font-size: 13px;
+    color: var(--sidebar-text);
+    cursor: pointer;
+    text-align: left;
+}
+
+.link-button:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+/* the little number on the Applications link */
+.count {
+    display: inline-block;
+    min-width: 20px;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #f59e0b;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* ---------- Number cards ---------- */
+.stat-amber { --accent: #d97706; }
+
+.stat-value.small {
+    font-size: 20px;
+}
+
+.stat-note {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* ---------- Badges for bands, advice and decisions ---------- */
+.badge-excellent,
+.badge-lend,
+.badge-approved {
+    background: var(--green-bg);
+    color: var(--green-text);
+}
+
+.badge-good {
+    background: #ccfbf1;
+    color: #115e59;
+}
+
+.badge-fair,
+.badge-review {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-poor,
+.badge-decline,
+.badge-declined {
+    background: var(--red-bg);
+    color: var(--red-text);
+}
+
+.badge-none {
+    background: var(--grey-bg);
+    color: var(--grey-text);
+}
+
+/* ---------- Notices and results ---------- */
+.reasons {
+    margin: 8px 0 0;
+    padding-left: 20px;
+    line-height: 1.6;
+}
+
+.notice {
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border-radius: 8px;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    color: #78350f;
+}
+
+.result-good {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.result-bad {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.advice-box {
+    margin: 16px 0;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+}
+
+.advice-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+/* ---------- The customer's score card ---------- */
+.score-card {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    align-items: center;
+    background: linear-gradient(120deg, #eff6ff, #eef2ff);
+}
+
+.score-main {
+    text-align: center;
+    min-width: 150px;
+}
+
+.score-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.score-number {
+    font-size: 60px;
+    line-height: 1.1;
+    font-weight: 800;
+    color: #1e3a8a;
+}
+
+.score-side {
+    flex: 1;
+    min-width: 260px;
+}
+
+.score-borrow {
+    font-size: 18px;
+    margin-bottom: 14px;
+}
+
+.score-borrow strong {
+    color: #1e3a8a;
+}
+
+/* one plain bar: how far the score is between 300 and 850, coloured by band */
+.score-bar {
+    height: 10px;
+    border-radius: 999px;
+    background: #dbe4f3;
+    overflow: hidden;
+}
+
+.score-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #94a3b8;
+    transition: width 0.4s;
+}
+
+.score-bar-fill.excellent { background: #22c55e; }
+.score-bar-fill.good { background: #14b8a6; }
+.score-bar-fill.fair { background: #f59e0b; }
+.score-bar-fill.poor { background: #ef4444; }
+
+.score-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.score-side .muted {
+    margin: 14px 0 0;
+}
+
+/* the "How is my score worked out?" box opens and closes */
+.how-card summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.how-card[open] summary {
+    margin-bottom: 12px;
+}
+
+.how-body h3 {
+    margin: 20px 0 8px;
+}
+
+/* ---------- Tables and pop-ups ---------- */
+th.num,
+td.num {
+    text-align: right;
+}
+
+tr.total td {
+    font-weight: 700;
+    background: #f8fafc;
+}
+
+.actions .btn + .btn {
+    margin-left: 6px;
+}
+
+.modal-box h3 {
+    margin: 22px 0 8px;
+}
+
+.details-grid .full {
+    grid-column: 1 / -1;
+}
+
+label.grow {
+    flex: 3 1 260px;
+}
+
+.credentials {
+    margin: 16px 0;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+}
+
+.credentials div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+}
+
+.credentials span {
+    color: var(--muted);
+}
+
+.mono {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    user-select: all;
+}
+
+@media (max-width: 760px) {
+    .score-card {
+        gap: 12px;
+    }
+
+    .sidebar-foot {
+        margin-top: 12px;
+        padding-top: 10px;
+    }
+}
+
+/* keep the error line from touching the button under it on the sign-in cards */
+.auth-card .form-error {
+    margin: 0 0 12px;
+}
+
+/* ---------- Overdue colour bands ----------
+   one colour per band, getting stronger the later it is; the words sit beside the colour */
+.band {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.band-yellow { background: #fff2b8; color: #6f5300; }
+.band-orange { background: #ffd8ad; color: #7d3500; }
+.band-red { background: #ffb3b3; color: #7a0c0c; }
+.band-dark_red { background: #c0392b; color: #ffffff; }
+.band-maroon { background: #6b1020; color: #ffffff; }
+
+/* ---------- The rules customers read before they apply ---------- */
+.rules-box {
+    background: #f5f8ff;
+    border: 1px solid #d9e2f5;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 12px 0 14px;
+}
+
+.rules-box h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+}
+
+.rules-box ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.rules-box li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.rules-box li:last-child {
+    margin-bottom: 0;
+}
+
+form label.check {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    margin: 0 0 14px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+form label.check input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    flex: none;
+}
+
+/* ---------- Warning and escalation ---------- */
+.letter {
+    white-space: pre-wrap;
+    background: #f5f8ff;
+    border: 1px solid #d9e2f5;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 10px 0 14px;
+    max-height: 46vh;
+    overflow: auto;
+    line-height: 1.55;
+    font-size: 14px;
+}
+
+.customer-notice {
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 18px;
+}
+
+.customer-notice h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+}
+
+.customer-notice .notice-text {
+    white-space: pre-line;
+    margin: 0 0 12px;
+    line-height: 1.55;
+}
+
+.customer-notice .notice-total {
+    margin: 0 0 12px;
+}
+
+.notice-warning {
+    background: #fff4d6;
+    border: 1px solid #f0c75e;
+    color: #5c4300;
+}
+
+.notice-escalated {
+    background: #fde2e2;
+    border: 1px solid #e58a8a;
+    color: #6e0f0f;
+}
+
+a.btn {
+    display: inline-block;
+    text-decoration: none;
 }

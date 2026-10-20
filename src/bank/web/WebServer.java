@@ -48,6 +48,17 @@ public class WebServer {
 
         server.start();
 
+        // the first time there is no admin login, one is created with a random password
+        String adminPassword = service.takeFirstAdminPassword();
+        if (adminPassword != null) {
+            System.out.println();
+            System.out.println("Admin login created. Write this down, it is shown only once:");
+            System.out.println("  username: admin");
+            System.out.println("  temporary password: " + adminPassword);
+            System.out.println("You will be asked to choose your own password when you first sign in.");
+            System.out.println();
+        }
+
         System.out.println("NepoLM is running.");
         System.out.println("Open http://localhost:" + port + " in your browser.");
         System.out.println("Press Ctrl+C to stop the server.");

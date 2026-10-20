@@ -16,12 +16,19 @@ public class Customer implements Serializable {
     // every loan this customer has ever taken (active, paid off, or defaulted)
     private List<Loan> loans;
 
+    // The tier is no longer chosen by hand: Bank works it out from the credit
+    // score every time (see CreditBand). The stored value is only kept so
+    // files saved by older versions still load.
     public Customer(String customerId, String name, String email, CreditTier creditTier) {
         this.customerId = customerId;
         this.name = name;
         this.email = email;
         this.creditTier = creditTier;
         this.loans = new ArrayList<>();
+    }
+
+    public Customer(String customerId, String name, String email) {
+        this(customerId, name, email, CreditTier.STANDARD);
     }
 
     public String getCustomerId() {

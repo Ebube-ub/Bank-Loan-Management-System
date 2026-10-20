@@ -110,13 +110,16 @@ class BankTest {
 
     @Test
     void applyForLoan_blockedByTotalBorrowedCap() throws Exception {
-        registerPremiumCustomer("C1"); // higher loan-count limit, so this test only hits the amount cap
+        // a bank with plenty of money, so this test only hits the amount cap
+        Bank bigBank = new Bank(new BigDecimal("10000000"));
+        bigBank.registerCustomer(new Customer("C1", "Test C1", "c1@example.com", CreditTier.PREMIUM));
 
-        bank.applyForLoan("C1", "L1", new BigDecimal("30000"), new BigDecimal("0.1"), 12);
+        BigDecimal firstLoan = Bank.MAX_TOTAL_BORROWED.subtract(new BigDecimal("10000"));
+        bigBank.applyForLoan("C1", "L1", firstLoan, new BigDecimal("0.1"), 12);
 
-        // 30000 + 25000 = 55000, which is over the 50000 total borrowed limit
+        // 10,000 less than the cap is already borrowed, so another 25,000 goes over it
         assertThrows(LoanLimitExceededException.class, () ->
-                bank.applyForLoan("C1", "L2", new BigDecimal("25000"), new BigDecimal("0.1"), 12)
+                bigBank.applyForLoan("C1", "L2", new BigDecimal("25000"), new BigDecimal("0.1"), 12)
         );
     }
 
@@ -144,11 +147,16 @@ class BankTest {
         BigDecimal fundsBeforeLoan = bank.getAvailableFunds();
         Loan loan = bank.applyForLoan("C1", "L1", new BigDecimal("1200"), new BigDecimal("0.12"), 12);
 
-        // once fully repaid, the bank should have its principal back plus the interest it earned
-        BigDecimal expectedFundsAfterRepayment =
-                fundsBeforeLoan.subtract(loan.getPrincipal()).add(loan.getTotalRepayable());
+        // paying everything off today is paying ahead, so there is a prepayment charge on top
+        BigDecimal payoff = loan.payoffAmount(LocalDate.now(), Bank.PREPAYMENT_FEE_RATE);
+        BigDecimal charge = payoff.subtract(loan.getTotalRepayable());
 
-        bank.makePayment("L1", loan.getTotalRepayable());
+        // once fully repaid, the bank should have its principal back plus the interest
+        // it earned and the prepayment charge
+        BigDecimal expectedFundsAfterRepayment =
+                fundsBeforeLoan.subtract(loan.getPrincipal()).add(loan.getTotalRepayable()).add(charge);
+
+        bank.makePayment("L1", payoff);
 
         assertEquals(LoanStatus.PAID_OFF, loan.getStatus());
         assertEquals(BigDecimal.ZERO.setScale(2), loan.getOutstandingBalance().setScale(2));
@@ -160,9 +168,9 @@ class BankTest {
     void makePayment_overpayment_reportsUnappliedAmount() throws Exception {
         registerStandardCustomer("C1");
         Loan loan = bank.applyForLoan("C1", "L1", new BigDecimal("1200"), new BigDecimal("0.12"), 12);
-        BigDecimal total = loan.getTotalRepayable();
+        BigDecimal total = loan.payoffAmount(LocalDate.now(), Bank.PREPAYMENT_FEE_RATE);
 
-        // pay 50 more than what's actually owed
+        // pay 50 more than what it costs to pay everything off
         BigDecimal overpayment = bank.makePayment("L1", total.add(new BigDecimal("50")));
 
         assertEquals(new BigDecimal("50.00"), overpayment.setScale(2));
@@ -259,7 +267,7 @@ class BankTest {
     void loanStatusSummary_countsEachStatus() throws Exception {
         registerStandardCustomer("C1");
         Loan paidOff = bank.applyForLoan("C1", "L1", new BigDecimal("1000"), new BigDecimal("0.1"), 6);
-        bank.makePayment("L1", paidOff.getTotalRepayable());
+        bank.makePayment("L1", paidOff.payoffAmount(LocalDate.now(), Bank.PREPAYMENT_FEE_RATE));
         bank.applyForLoan("C1", "L2", new BigDecimal("500"), new BigDecimal("0.1"), 6);
 
         LoanStatusSummary summary = bank.loanStatusSummary();
