@@ -2,3 +2,10 @@
 bin/
 out/
 out-test/
+
+# the saved bank: customer details and login hashes. Never commit this.
+bank.dat
+bank.dat.tmp
+
+# local settings and secrets (the AI key lives here). Never commit this.
+.env

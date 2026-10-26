@@ -1,31 +1,35 @@
-// The Payments screen: a payment form and a list of loans that still
-// have money owed on them.
+// The Payments screen (admin): record a payment a customer made to the lender
+// (for example cash at the counter), and see which loans still have money owed.
 
-import * as api from "../api.js";
-import { money, badge, escapeHtml } from "../format.js";
-import { showToast, dataChanged, fillTable } from "../ui.js";
+import * as api from "../../api.js";
+import { money, badge, escapeHtml } from "../../format.js";
+import { showToast, dataChanged, fillTable, setMessage } from "../../ui.js";
 
 const form = document.getElementById("payment-form");
 const loanIdInput = document.getElementById("payment-loan-id");
-const error = document.getElementById("payment-error");
 const result = document.getElementById("payment-result");
 
 export function init() {
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
-        error.textContent = "";
+        setMessage("payment-error", "");
         result.classList.add("hidden");
 
         const loanId = loanIdInput.value.trim();
         const amount = form.amount.value;
 
         try {
-            const loan = await api.makePayment(loanId, amount);
+            const loan = await api.recordPayment(loanId, amount);
 
             let html = `
-                Payment of <strong>${money(amount)}</strong> applied to loan <strong>${escapeHtml(loan.loanId)}</strong>.<br>
+                Payment of <strong>${money(amount)}</strong> recorded on loan <strong>${escapeHtml(loan.loanId)}</strong>
+                for ${escapeHtml(loan.customerName)}.<br>
                 Status: ${badge(loan.status)}<br>
                 Outstanding balance: <strong>${money(loan.outstanding)}</strong>`;
+
+            if (Number(loan.prepaymentFee) > 0) {
+                html += `<br><span class="muted">${money(loan.prepaymentFee)} of it was a prepayment charge, for paying installments before they are due.</span>`;
+            }
 
             if (Number(loan.overpayment) > 0) {
                 html += `<br><span class="muted">${money(loan.overpayment)} was not used because the loan is now fully paid.</span>`;
@@ -34,14 +38,14 @@ export function init() {
             result.innerHTML = html;
             result.classList.remove("hidden");
             form.amount.value = "";
-            showToast(`Payment applied to ${loan.loanId}.`);
+            showToast(`Payment recorded on ${loan.loanId}.`);
             dataChanged();
         } catch (e) {
-            error.textContent = e.message;
+            setMessage("payment-error", e.message);
         }
     });
 
-    // "Pay" buttons in the table fill in the loan ID for you
+    // "Record payment" buttons in the table fill in the loan ID for you
     document.getElementById("payments-loans").addEventListener("click", (event) => {
         const button = event.target.closest("[data-pay-loan]");
         if (button) {
@@ -63,7 +67,7 @@ export async function load() {
                 <td>${escapeHtml(loan.customerName)}</td>
                 <td>${money(loan.outstanding)}</td>
                 <td>${badge(loan.status)}</td>
-                <td class="actions"><button class="btn btn-small" data-pay-loan="${escapeHtml(loan.loanId)}">Pay</button></td>
+                <td class="actions"><button class="btn btn-small" data-pay-loan="${escapeHtml(loan.loanId)}">Record payment</button></td>
             </tr>`);
         fillTable("payments-loans", "payments-empty", rows);
     } catch (e) {
@@ -71,10 +75,10 @@ export async function load() {
     }
 }
 
-// used by the loan details pop-up's "Make a payment" button
-export function payLoan(loanId) {
+// used by the loan details pop-up's "Record a payment" button
+export function prefillLoan(loanId) {
     loanIdInput.value = loanId;
-    error.textContent = "";
+    setMessage("payment-error", "");
     result.classList.add("hidden");
 
     if (location.hash === "#payments") {

@@ -5,8 +5,11 @@ import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
+import java.util.concurrent.Executors;
 
 import com.sun.net.httpserver.HttpServer;
+
+import bank.ai.AiService;
 
 // Starts NepoLM, the web version of the Bank Loan Management System.
 //
@@ -43,10 +46,32 @@ public class WebServer {
             return;
         }
 
-        server.createContext("/api", new ApiHandler(service));
+        // The AI features need a key in the .env file (see .env.example). Without
+        // one they switch themselves off and the page shows the system's own summaries.
+        AiService ai = AiService.fromEnvironment();
+        System.out.println(ai.isConfigured()
+                ? "AI summaries are on."
+                : "AI summaries are off (no NVIDIA_API_KEY in .env). The system's own summaries are used.");
+
+        server.createContext("/api", new ApiHandler(service, ai));
         server.createContext("/", new StaticFileHandler(Path.of("web")));
 
+        // A few threads, so a slow AI answer for one request never makes the other pages wait.
+        // (The bank itself is still used one request at a time: see BankService.)
+        server.setExecutor(Executors.newFixedThreadPool(8));
+
         server.start();
+
+        // the first time there is no admin login, one is created with a random password
+        String adminPassword = service.takeFirstAdminPassword();
+        if (adminPassword != null) {
+            System.out.println();
+            System.out.println("Admin login created. Write this down, it is shown only once:");
+            System.out.println("  username: admin");
+            System.out.println("  temporary password: " + adminPassword);
+            System.out.println("You will be asked to choose your own password when you first sign in.");
+            System.out.println();
+        }
 
         System.out.println("NepoLM is running.");
         System.out.println("Open http://localhost:" + port + " in your browser.");

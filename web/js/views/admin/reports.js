@@ -1,9 +1,8 @@
-// The Reports screen: loan status counts, money totals, top borrowers
-// and overdue installments.
+// The Reports screen (admin): loan status counts, money totals and top borrowers.
 
-import * as api from "../api.js";
-import { money, escapeHtml } from "../format.js";
-import { showToast, fillTable } from "../ui.js";
+import * as api from "../../api.js";
+import { money, escapeHtml } from "../../format.js";
+import { showToast, fillTable } from "../../ui.js";
 
 const limitInput = document.getElementById("top-limit");
 
@@ -13,22 +12,13 @@ export function init() {
 
 export async function load() {
     try {
-        const [summary, overdue] = await Promise.all([api.getSummary(), api.getOverdue()]);
+        const summary = await api.getSummary();
 
         document.getElementById("report-active").textContent = summary.active;
         document.getElementById("report-paid-off").textContent = summary.paidOff;
         document.getElementById("report-defaulted").textContent = summary.defaulted;
         document.getElementById("report-interest").textContent = money(summary.interestEarned);
         document.getElementById("report-funds").textContent = money(summary.availableFunds);
-
-        const overdueRows = overdue.map((entry) => `
-            <tr>
-                <td>${escapeHtml(entry.customerName)}</td>
-                <td>${escapeHtml(entry.loanId)}</td>
-                <td>${entry.dueDate}</td>
-                <td>${entry.daysOverdue}</td>
-            </tr>`);
-        fillTable("overdue-table", "overdue-empty", overdueRows);
     } catch (e) {
         showToast(e.message);
     }

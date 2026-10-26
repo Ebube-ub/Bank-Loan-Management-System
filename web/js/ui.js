@@ -1,5 +1,5 @@
 // Things every screen uses: the toast message, opening/closing pop-ups,
-// and telling the page that data changed so it can reload.
+// filling tables, and telling the page that data changed so it can reload.
 
 let toastTimer = null;
 
@@ -48,4 +48,19 @@ export function dataChanged() {
 export function fillTable(tbodyId, emptyId, rowsHtml) {
     document.getElementById(tbodyId).innerHTML = rowsHtml.join("");
     document.getElementById(emptyId).classList.toggle("hidden", rowsHtml.length > 0);
+}
+
+// shows or hides an element
+export function show(elementId, visible) {
+    document.getElementById(elementId).classList.toggle("hidden", !visible);
+}
+
+// sets the text of a message line (an empty text hides it)
+export function setMessage(elementId, text) {
+    document.getElementById(elementId).textContent = text || "";
+}
+
+// asks the browser to scroll to a screen's top after switching
+export function scrollToTop() {
+    window.scrollTo({ top: 0 });
 }

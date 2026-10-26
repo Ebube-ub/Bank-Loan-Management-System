@@ -2,158 +2,108 @@ package bank.web;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
-import bank.exception.CustomerAlreadyExistsException;
-import bank.exception.CustomerNotFoundException;
-import bank.exception.InsufficientFundsException;
-import bank.exception.LoanLimitExceededException;
-import bank.exception.LoanNotFoundException;
-import bank.exception.OverdueInstallmentsException;
+import bank.demo.DemoDataSeeder;
 import bank.model.Bank;
-import bank.model.CreditTier;
-import bank.model.Customer;
-import bank.model.Installment;
-import bank.model.Loan;
-import bank.model.LoanStatus;
-import bank.model.LoanStatusSummary;
-import bank.model.OverdueEntry;
 import bank.persistence.BankFileRepository;
 
 // The one place the web server touches the Bank object.
 //
-// It does three jobs the console's main loop used to do:
-//  1. loads bank.dat when the server starts
-//  2. refreshes overdue/defaulted statuses before every request
-//  3. saves bank.dat after every change (a website has no "Exit" option)
+// Every request does its work inside read(...) or change(...). Both hold a lock,
+// so if two requests arrive at once they take turns instead of changing the
+// bank at the same time. Both also refresh the overdue / defaulted statuses
+// first, which is what the console's menu loop did before each menu.
 //
-// Every method is synchronized, so if two requests arrive at once they take
-// turns instead of changing the bank at the same time.
+//  read(...)   just looks at the bank
+//  change(...) changes it, then saves bank.dat straight away (a website has no "Exit")
+//
+// Doing the work (including building the JSON answer) inside the lock means
+// a request never sees the bank half-changed by another one.
 public class BankService {
 
-    private static final BigDecimal STARTING_FUNDS = new BigDecimal("100000");
+    // A piece of work to do on the bank. It may throw any of the bank's exceptions.
+    public interface BankAction<T> {
+        T run(Bank bank) throws Exception;
+    }
 
     private final BankFileRepository repository = new BankFileRepository();
     private final String dataFile;
     private final Bank bank;
 
+    // the admin's first temporary password; shown once in the terminal, then cleared
+    private String firstAdminPassword;
+
     public BankService(String dataFile) {
         this.dataFile = dataFile;
         this.bank = loadBank();
+        prepareFirstRun();
     }
 
-    // ---------- Customers ----------
-
-    public synchronized List<Customer> getCustomers() {
-        refresh();
-        return bank.getAllCustomers();
+    public synchronized <T> T read(BankAction<T> action) throws Exception {
+        LocalDate today = LocalDate.now();
+        bank.refreshDelinquencyStatus(today);
+        bank.recordScoreSnapshots(today); // kept in memory; saved with the next change
+        return action.run(bank);
     }
 
-    public synchronized Customer registerCustomer(String customerId, String name, String email,
-            CreditTier creditTier) throws CustomerAlreadyExistsException, IOException {
-
-        Customer customer = new Customer(customerId, name, email, creditTier);
-        bank.registerCustomer(customer);
-        save();
-        return customer;
-    }
-
-    // throws if the customer doesn't exist or can't open another loan
-    public synchronized void checkEligibility(String customerId)
-            throws CustomerNotFoundException, LoanLimitExceededException {
-        refresh();
-        bank.checkActiveLoanLimit(customerId);
-    }
-
-    // ---------- Loans ----------
-
-    public synchronized List<Loan> getAllLoans() {
-        refresh();
-        return bank.getAllLoans();
-    }
-
-    public synchronized List<Loan> findLoansByCustomer(String customerId) throws CustomerNotFoundException {
-        refresh();
-        return bank.findLoansByCustomer(customerId);
-    }
-
-    public synchronized List<Loan> findLoansByStatus(LoanStatus status) {
-        refresh();
-        return bank.findLoansByStatus(status);
-    }
-
-    public synchronized List<Loan> loansSortedByBalance() {
-        refresh();
-        return bank.loansSortedByOutstandingBalanceDesc();
-    }
-
-    public synchronized Loan getLoan(String loanId) throws LoanNotFoundException {
-        refresh();
-        return bank.findLoanById(loanId);
-    }
-
-    public synchronized List<Installment> installmentsByPaidStatus(Loan loan, boolean paid) {
-        return bank.installmentsByPaidStatus(loan, paid);
-    }
-
-    public synchronized Loan applyForLoan(String customerId, String loanId, BigDecimal principal,
-            BigDecimal interestRate, int termMonths)
-            throws CustomerNotFoundException, InsufficientFundsException,
-            LoanLimitExceededException, OverdueInstallmentsException, IOException {
-
-        Loan loan = bank.applyForLoan(customerId, loanId, principal, interestRate, termMonths);
-        save();
-        return loan;
-    }
-
-    // returns the part of the payment that wasn't needed (overpayment)
-    public synchronized BigDecimal makePayment(String loanId, BigDecimal amount)
-            throws LoanNotFoundException, IOException {
-
-        BigDecimal overpayment = bank.makePayment(loanId, amount);
-        save();
-        return overpayment;
-    }
-
-    // ---------- Reports ----------
-
-    public synchronized LoanStatusSummary loanStatusSummary() {
-        refresh();
-        return bank.loanStatusSummary();
-    }
-
-    public synchronized BigDecimal totalInterestEarned() {
-        return bank.totalInterestEarned();
-    }
-
-    public synchronized BigDecimal availableFunds() {
-        return bank.getAvailableFunds();
-    }
-
-    public synchronized List<Customer> topBorrowers(int limit) {
-        refresh();
-        return bank.topBorrowers(limit);
-    }
-
-    public synchronized BigDecimal totalPrincipalBorrowed(Customer customer) {
-        return bank.totalPrincipalBorrowed(customer);
-    }
-
-    public synchronized List<OverdueEntry> overdueLoans() {
-        refresh();
-        return bank.currentlyOverdueLoans(LocalDate.now());
-    }
-
-    // ---------- Helpers ----------
-
-    private void refresh() {
-        bank.refreshDelinquencyStatus(LocalDate.now());
-    }
-
-    private void save() throws IOException {
+    public synchronized <T> T change(BankAction<T> action) throws Exception {
+        LocalDate today = LocalDate.now();
+        bank.refreshDelinquencyStatus(today);
+        bank.recordScoreSnapshots(today);
+        T result = action.run(bank);
         repository.save(bank, dataFile);
+        return result;
+    }
+
+    // returns the admin's temporary password the first time it is asked for, then null
+    public synchronized String takeFirstAdminPassword() {
+        String password = firstAdminPassword;
+        firstAdminPassword = null;
+        return password;
+    }
+
+    // A brand-new bank gets the demo customers so there is something to look
+    // at, and a bank with no admin login gets one (with a random password).
+    private void prepareFirstRun() {
+        boolean changed = false;
+
+        // a bank started with less than the current starting money is topped up once
+        if (bank.increaseCapitalTo(Bank.STARTING_CAPITAL)) {
+            System.out.println("The bank's money was increased to " + Bank.naira(Bank.STARTING_CAPITAL) + ".");
+            changed = true;
+        }
+
+        if (bank.getAllCustomers().isEmpty() && bank.getAllLoans().isEmpty()) {
+            DemoDataSeeder.seed(bank, LocalDate.now());
+            System.out.println("Demo customers D001 to D011 were created.");
+            changed = true;
+        }
+
+        // Demo customers D012 to D016 give the Dashboard's watch list something to show.
+        // A bank that already has the 11 demo customers gets them too, once.
+        if (DemoDataSeeder.seedWatchListExamples(bank, LocalDate.now()) > 0) {
+            System.out.println("Watch list examples D012 to D016 were created.");
+            changed = true;
+        }
+
+        if (!bank.hasAdmin()) {
+            firstAdminPassword = bank.createAdmin("admin");
+            changed = true;
+        }
+
+        // one credit score per customer per day, so the early-warning list can see a drop
+        if (bank.recordScoreSnapshots(LocalDate.now())) {
+            changed = true;
+        }
+
+        if (changed) {
+            try {
+                repository.save(bank, dataFile);
+            } catch (IOException e) {
+                System.out.println("Could not save bank state: " + e.getMessage());
+            }
+        }
     }
 
     // same rules as Main.loadBank: use the saved file if there is one,
@@ -165,12 +115,12 @@ public class BankService {
             return loaded;
         } catch (FileNotFoundException e) {
             System.out.println("No saved bank state found. Starting a new bank.");
-            return new Bank(STARTING_FUNDS);
+            return new Bank(Bank.STARTING_CAPITAL);
         } catch (IOException | ClassNotFoundException e) {
             System.out.println(
                     "Could not read saved bank state (" + e.getMessage() + "). Starting a new bank."
             );
-            return new Bank(STARTING_FUNDS);
+            return new Bank(Bank.STARTING_CAPITAL);
         }
     }
 }

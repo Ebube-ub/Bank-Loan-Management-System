@@ -25,15 +25,25 @@ public class FormData {
             String key = equals >= 0 ? pair.substring(0, equals) : pair;
             String value = equals >= 0 ? pair.substring(equals + 1) : "";
 
-            values.put(decode(key), decode(value).trim());
+            values.put(decode(key), decode(value));
         }
     }
 
-    // returns the value, or null if the field wasn't sent or is empty
+    // returns the value without surrounding spaces, or null if the field wasn't sent or is blank
     public String get(String name) {
         String value = values.get(name);
-        if (value == null || value.isEmpty()) {
+        if (value == null || value.trim().isEmpty()) {
             return null;
+        }
+        return value.trim();
+    }
+
+    // like requireText, but keeps the text exactly as typed (used for passwords,
+    // where a space at the start or end could be on purpose)
+    public String requireExact(String name, String label) {
+        String value = values.get(name);
+        if (value == null || value.isEmpty()) {
+            throw new IllegalArgumentException(label + " is required.");
         }
         return value;
     }
