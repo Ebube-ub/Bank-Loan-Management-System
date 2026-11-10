@@ -106,6 +106,8 @@ public class AdminApi {
             topBorrowers(req);
         } else if (req.matches("GET", "reports", "overdue")) {
             overdueReport(req);
+        } else if (req.matches("GET", "reports", "analytics")) {
+            analyticsReport(req);
         } else if (req.matches("GET", "finance")) {
             finance(req);
 
@@ -606,6 +608,12 @@ public class AdminApi {
             return Json.array(items);
         });
 
+        req.send(200, json);
+    }
+
+    // the numbers behind the charts on the Reports screen
+    private void analyticsReport(Request req) throws Exception {
+        String json = service.read(bank -> JsonViews.analytics(bank, LocalDate.now()).toString());
         req.send(200, json);
     }
 

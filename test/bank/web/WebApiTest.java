@@ -454,6 +454,24 @@ class WebApiTest {
     }
 
     @Test
+    void analyticsReport_hasTheNumbersForTheThreeCharts() throws Exception {
+        Reply analytics = get("/api/reports/analytics", adminCookie);
+
+        assertEquals(200, analytics.status);
+        assertTrue(analytics.body.contains("\"loanStatus\":{"), analytics.body);
+        assertTrue(analytics.body.contains("\"creditBands\":["), analytics.body);
+        assertTrue(analytics.body.contains("\"months\":["), analytics.body);
+        // all four bands are always listed
+        assertTrue(analytics.body.contains("\"band\":\"POOR\""), analytics.body);
+        assertTrue(analytics.body.contains("\"band\":\"EXCELLENT\""), analytics.body);
+    }
+
+    @Test
+    void analyticsReport_isNotForVisitorsWhoAreNotSignedIn() throws Exception {
+        assertEquals(401, get("/api/reports/analytics", null).status);
+    }
+
+    @Test
     void badInput_getsAClearMessage_notACrash() throws Exception {
         assertEquals(400, post("/api/customers", adminCookie,
                 "customerId", "bad id!", "name", "X", "email", "x@example.com").status);

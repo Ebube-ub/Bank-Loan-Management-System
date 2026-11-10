@@ -167,12 +167,12 @@ function drawPlain() {
         ["Facts", summary.facts],
         ["Looks good", summary.looksGood],
         ["Check", summary.check],
-        ["Advice", summary.advice],
+        ["Recommendation", summary.advice],
     ].map(([label, text]) => `<div><dt>${label}</dt><dd>${escapeHtml(text)}</dd></div>`);
 
     let tag;
     if (showingAi) {
-        tag = "Reworded by AI in simpler words. The advice is still the system's own.";
+        tag = "Reworded by AI in simpler words. The recommendation is still the system's own.";
     } else if (plain.status === "waiting") {
         tag = "AI is making this simpler...";
     } else if (plain.status === "done") {

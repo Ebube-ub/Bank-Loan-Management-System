@@ -484,6 +484,28 @@
                     </div>
                 </div>
 
+                <div class="chart-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Loans by status</h2>
+                        </div>
+                        <div id="chart-loan-status"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Customers by credit band</h2>
+                        </div>
+                        <div id="chart-credit-bands"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Lent and earned each month</h2>
+                    </div>
+                    <div id="chart-months"></div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <h2>Top borrowers</h2>
@@ -754,32 +776,6 @@
             <button type="button" class="btn" data-close>Cancel</button>
             <button type="button" class="btn btn-primary" id="warning-send">Send warning</button>
         </div>
-    </div>
-</div>
-
-<!-- ===== LAWYER FILE POP-UP (admin) ===== -->
-<div class="modal hidden" id="lawyer-modal">
-    <div class="modal-box wide">
-        <button class="modal-close" data-close>&times;</button>
-        <h2 id="lawyer-title">Lawyer file</h2>
-        <p class="muted">Everything your lawyer needs, as plain text. Copy it and send it yourself. NepoLM never contacts your lawyer.</p>
-        <div class="letter" id="lawyer-text"></div>
-        <div class="modal-actions">
-            <button type="button" class="btn" id="lawyer-copy">Copy the file</button>
-        </div>
-
-        <div id="lawyer-refer" class="hidden">
-            <h3>Mark as referred</h3>
-            <p class="muted">Once you have handed this to your lawyer, mark it here so the record shows the date.</p>
-            <label>Note (optional)
-                <input id="lawyer-note" maxlength="500" placeholder="e.g. Handed to Mr Okoye">
-            </label>
-            <p class="form-error" id="lawyer-error"></p>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-primary" id="lawyer-refer-button">Mark as referred</button>
-            </div>
-        </div>
-        <p class="muted hidden" id="lawyer-referred-info"></p>
     </div>
 </div>
 

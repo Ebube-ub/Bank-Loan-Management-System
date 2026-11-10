@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import bank.model.ApplicationInsight;
 import bank.model.ApplicationStatus;
@@ -19,7 +20,9 @@ import bank.model.FinanceReport;
 import bank.model.Installment;
 import bank.model.Loan;
 import bank.model.LoanApplication;
+import bank.model.LoanStatusSummary;
 import bank.model.MonthlyFinance;
+import bank.model.MonthlyLending;
 import bank.model.OverdueEntry;
 import bank.model.PaymentRecord;
 import bank.model.ScoreFactor;
@@ -312,6 +315,41 @@ public class JsonViews {
                 .add("prepaymentFees", report.getPrepaymentFees())
                 .add("badDebt", report.getBadDebt())
                 .add("profit", report.getProfit())
+                .addRaw("months", Json.array(monthItems));
+    }
+
+    // ---------- Reports: the charts ----------
+
+    // the numbers behind the three charts on the Reports screen
+    public static Json analytics(Bank bank, LocalDate today) {
+        LoanStatusSummary status = bank.loanStatusSummary();
+
+        List<String> bandItems = new ArrayList<>();
+        for (Map.Entry<CreditBand, Integer> entry : bank.customersByBand(today).entrySet()) {
+            String name = entry.getKey().name();
+            bandItems.add(new Json()
+                    .add("band", name)
+                    .add("label", name.charAt(0) + name.substring(1).toLowerCase())
+                    .add("customers", entry.getValue())
+                    .toString());
+        }
+
+        List<String> monthItems = new ArrayList<>();
+        for (MonthlyLending month : bank.lendingByMonth(today)) {
+            monthItems.add(new Json()
+                    .add("month", month.getMonth().toString())
+                    .add("lent", month.getLent())
+                    .add("earned", month.getEarned())
+                    .toString());
+        }
+
+        return new Json()
+                .addRaw("loanStatus", new Json()
+                        .add("active", status.getActiveCount())
+                        .add("paidOff", status.getPaidOffCount())
+                        .add("defaulted", status.getDefaultedCount())
+                        .toString())
+                .addRaw("creditBands", Json.array(bandItems))
                 .addRaw("months", Json.array(monthItems));
     }
 

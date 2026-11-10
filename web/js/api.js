@@ -119,4 +119,6 @@ export const getWatchlistAi = () => request("GET", "/api/watchlist/ai");
 export const getSummary = () => request("GET", "/api/reports/summary");
 export const getTopBorrowers = (limit) => request("GET", `/api/reports/top-borrowers?limit=${id(limit)}`);
 export const getOverdue = () => request("GET", "/api/reports/overdue");
+// the numbers behind the charts on the Reports screen
+export const getAnalytics = () => request("GET", "/api/reports/analytics");
 export const getFinance = () => request("GET", "/api/finance");

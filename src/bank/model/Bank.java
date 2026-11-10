@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -814,6 +815,70 @@ public class Bank implements Serializable {
         }
 
         return new LoanStatusSummary(active, paidOff, defaulted);
+    }
+
+    // How many customers are in each credit band. Every band is in the answer,
+    // even with 0 customers, so the chart always has the same slices.
+    public Map<CreditBand, Integer> customersByBand(LocalDate asOf) {
+
+        Map<CreditBand, Integer> counts = new EnumMap<>(CreditBand.class);
+
+        for (CreditBand band : CreditBand.values()) {
+            counts.put(band, 0);
+        }
+
+        for (Customer customer : customers) {
+            CreditBand band = scoreOf(customer, asOf).getBand();
+            counts.put(band, counts.get(band) + 1);
+        }
+
+        return counts;
+    }
+
+    // Money lent and money earned in each month, oldest first, for the chart on the
+    // Reports screen. "Earned" is the same figure the Finance screen shows.
+    // Shows at most the last 12 months, and always up to and including this month.
+    public List<MonthlyLending> lendingByMonth(LocalDate today) {
+
+        Map<YearMonth, BigDecimal> lent = new TreeMap<>();
+        for (Loan loan : loans) {
+            addToMonth(lent, YearMonth.from(loan.getDisbursementDate()), loan.getPrincipal());
+        }
+
+        Map<YearMonth, BigDecimal> earned = new TreeMap<>();
+        for (MonthlyFinance month : financeReport(today).getMonths()) {
+            earned.put(month.getMonth(), month.getEarned());
+        }
+
+        // from the first month with anything in it, but no more than 12 months back
+        YearMonth last = YearMonth.from(today);
+        YearMonth first = last;
+
+        for (YearMonth month : lent.keySet()) {
+            if (month.isBefore(first)) {
+                first = month;
+            }
+        }
+        for (YearMonth month : earned.keySet()) {
+            if (month.isBefore(first)) {
+                first = month;
+            }
+        }
+        if (first.isBefore(last.minusMonths(11))) {
+            first = last.minusMonths(11);
+        }
+
+        List<MonthlyLending> months = new ArrayList<>();
+
+        for (YearMonth month = first; !month.isAfter(last); month = month.plusMonths(1)) {
+            months.add(new MonthlyLending(
+                    month,
+                    lent.getOrDefault(month, BigDecimal.ZERO),
+                    earned.getOrDefault(month, BigDecimal.ZERO)
+            ));
+        }
+
+        return months;
     }
 
     // Adds up the interest portion of every installment that has been paid

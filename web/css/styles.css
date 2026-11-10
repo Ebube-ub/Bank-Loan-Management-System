@@ -1200,7 +1200,7 @@ td.headline {
 
 .plain-list > div {
     display: grid;
-    grid-template-columns: 90px 1fr;
+    grid-template-columns: 125px 1fr;
     gap: 12px;
     padding: 6px 0;
     border-top: 1px solid var(--border);
@@ -1339,4 +1339,110 @@ td.headline {
     margin: 0 6px 0 0;
     padding: 1px 8px;
     font-size: 11px;
+}
+
+/* ---------- Charts (Reports screen) ---------- */
+
+/* the colour of a slice, a column or a legend dot: set once as --c, used by the rules below */
+.c-blue { --c: #2563eb; }
+.c-green { --c: #16a34a; }
+.c-red { --c: #dc2626; }
+.c-amber { --c: #f59e0b; }
+.c-teal { --c: #14b8a6; }
+
+/* two charts side by side; one under the other on a narrow screen */
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.chart-grid .card {
+    margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.donut {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px 28px;
+}
+
+.donut svg {
+    width: 180px;
+    height: 180px;
+    flex-shrink: 0;
+}
+
+.donut-slice {
+    stroke: var(--c);
+}
+
+.donut-total {
+    font-size: 30px;
+    font-weight: 700;
+    fill: var(--text);
+}
+
+.chart-caption {
+    font-size: 12px;
+    fill: var(--muted);
+}
+
+.legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.legend li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin-top: 10px;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--c);
+    flex-shrink: 0;
+}
+
+.columns-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.column {
+    fill: var(--c);
+}
+
+.chart-grid-line {
+    stroke: var(--border);
+    stroke-width: 1;
+}
+
+.chart-axis {
+    font-size: 11px;
+    fill: var(--muted);
 }

@@ -4,15 +4,17 @@
 //   Warned and watched   everyone else who is late
 //   Overdue installments  every late installment, coloured by how late it is
 //
-// "Send warning" puts the warning on the customer's own page. "Prepare lawyer file" shows
-// everything your lawyer needs; from there you can mark the case as referred.
+// "Send warning" puts the warning on the customer's own page.
+//
+// The "Prepare lawyer file" button and its pop-up are switched off for now. The server
+// routes (GET /api/collections/{id}/lawyer-file and POST .../refer), LawyerFile.java and
+// api.js's getLawyerFile / referToLawyer are still there, so it can be brought back.
 
 import * as api from "../../api.js";
 import { money, escapeHtml, shortDate } from "../../format.js";
-import { showToast, fillTable, openModal, closeModal, dataChanged, setMessage, show } from "../../ui.js";
+import { showToast, fillTable, openModal, closeModal, dataChanged, setMessage } from "../../ui.js";
 
 let warningCustomerId = null;
-let lawyerCustomerId = null;
 
 export function init() {
     document.getElementById("view-overdue").addEventListener("click", (event) => {
@@ -20,16 +22,9 @@ export function init() {
         if (warningButton) {
             openWarning(warningButton.dataset.sendWarning);
         }
-
-        const lawyerButton = event.target.closest("[data-lawyer-file]");
-        if (lawyerButton) {
-            openLawyerFile(lawyerButton.dataset.lawyerFile);
-        }
     });
 
     document.getElementById("warning-send").addEventListener("click", sendWarning);
-    document.getElementById("lawyer-copy").addEventListener("click", copyLawyerFile);
-    document.getElementById("lawyer-refer-button").addEventListener("click", refer);
 }
 
 // "18 days, Late" with the band's colour. The words are there too, so the colour is never the only clue.
@@ -45,14 +40,13 @@ function customerCell(customer) {
 function actionRow(customer) {
     const id = escapeHtml(customer.customerId);
     let what;
-    let button;
+    let button = "";
 
     if (customer.stage === "SEND_WARNING") {
         what = "More than 10 days late. Send a warning.";
         button = `<button class="btn btn-small btn-primary" data-send-warning="${id}">Send warning</button>`;
     } else {
         what = `<strong>Needs escalation.</strong> Warned ${shortDate(customer.warningSentOn)}, not paid by ${shortDate(customer.deadline)}.`;
-        button = `<button class="btn btn-small btn-primary" data-lawyer-file="${id}">Prepare lawyer file</button>`;
     }
 
     return `
@@ -66,15 +60,13 @@ function actionRow(customer) {
 }
 
 function waitingRow(customer) {
-    const id = escapeHtml(customer.customerId);
     let where;
-    let button = "";
+    const button = "";
 
     if (customer.stage === "WARNED") {
         where = `Warning sent ${shortDate(customer.warningSentOn)}. Has until ${shortDate(customer.deadline)} to pay.`;
     } else if (customer.stage === "REFERRED") {
         where = `Referred to your lawyer on ${shortDate(customer.referredOn)}.`;
-        button = `<button class="btn btn-small" data-lawyer-file="${id}">Lawyer file</button>`;
     } else {
         where = "Watching. The Send warning button appears after 10 days.";
     }
@@ -158,62 +150,5 @@ async function sendWarning() {
         dataChanged();
     } catch (e) {
         setMessage("warning-error", e.message);
-    }
-}
-
-// ---------- Lawyer file ----------
-
-async function openLawyerFile(customerId) {
-    lawyerCustomerId = customerId;
-    setMessage("lawyer-error", "");
-    document.getElementById("lawyer-note").value = "";
-
-    try {
-        const file = await api.getLawyerFile(customerId);
-
-        document.getElementById("lawyer-title").textContent = `Lawyer file: ${file.name}`;
-        document.getElementById("lawyer-text").textContent = file.text;
-
-        show("lawyer-refer", file.canRefer);
-
-        const info = document.getElementById("lawyer-referred-info");
-        if (file.referredOn) {
-            info.textContent = `Referred to your lawyer on ${shortDate(file.referredOn)}.` +
-                (file.referredNote ? ` Note: ${file.referredNote}` : "");
-        }
-        show("lawyer-referred-info", Boolean(file.referredOn));
-
-        openModal("lawyer-modal");
-    } catch (e) {
-        showToast(e.message);
-    }
-}
-
-async function copyLawyerFile() {
-    const text = document.getElementById("lawyer-text").textContent;
-
-    try {
-        await navigator.clipboard.writeText(text);
-        showToast("The lawyer file is copied.");
-    } catch (e) {
-        // some browsers refuse: select the text so it can be copied by hand
-        const range = document.createRange();
-        range.selectNodeContents(document.getElementById("lawyer-text"));
-        window.getSelection().removeAllRanges();
-        window.getSelection().addRange(range);
-        showToast("Press Ctrl+C to copy the selected text.");
-    }
-}
-
-async function refer() {
-    setMessage("lawyer-error", "");
-
-    try {
-        await api.referToLawyer(lawyerCustomerId, document.getElementById("lawyer-note").value);
-        closeModal("lawyer-modal");
-        showToast("Marked as referred to your lawyer.");
-        dataChanged();
-    } catch (e) {
-        setMessage("lawyer-error", e.message);
     }
 }

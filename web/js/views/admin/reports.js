@@ -1,6 +1,7 @@
-// The Reports screen (admin): loan status counts, money totals and top borrowers.
+// The Reports screen (admin): loan status counts, money totals, three charts and top borrowers.
 
 import * as api from "../../api.js";
+import { donut, columns } from "../../charts.js";
 import { money, escapeHtml } from "../../format.js";
 import { showToast, fillTable } from "../../ui.js";
 
@@ -23,7 +24,38 @@ export async function load() {
         showToast(e.message);
     }
 
+    loadCharts();
     loadTopBorrowers();
+}
+
+// the colour of each credit band's slice, matching how the bands are coloured elsewhere
+const BAND_COLORS = { EXCELLENT: "c-green", GOOD: "c-teal", FAIR: "c-amber", POOR: "c-red" };
+
+async function loadCharts() {
+    try {
+        const analytics = await api.getAnalytics();
+
+        donut(document.getElementById("chart-loan-status"), [
+            { label: "Active", value: analytics.loanStatus.active, color: "c-blue" },
+            { label: "Paid off", value: analytics.loanStatus.paidOff, color: "c-green" },
+            { label: "Defaulted", value: analytics.loanStatus.defaulted, color: "c-red" },
+        ], { centre: "loans", empty: "No loans yet." });
+
+        donut(document.getElementById("chart-credit-bands"),
+            analytics.creditBands.map((band) => ({
+                label: band.label,
+                value: band.customers,
+                color: BAND_COLORS[band.band],
+            })),
+            { centre: "customers", empty: "No customers yet." });
+
+        columns(document.getElementById("chart-months"), analytics.months, [
+            { key: "lent", label: "Lent", color: "c-blue" },
+            { key: "earned", label: "Earned", color: "c-green" },
+        ], "Nothing lent or earned yet.");
+    } catch (e) {
+        showToast(e.message);
+    }
 }
 
 async function loadTopBorrowers() {
